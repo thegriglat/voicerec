@@ -10,7 +10,11 @@ trap 'rm -rf "$tmp"' EXIT
 # whisper.cpp принимает только 16 kHz mono wav
 ffmpeg -loglevel error -i "$in" -ar 16000 -ac 1 -c:a pcm_s16le "$tmp/in.wav"
 
-"$VR_BIN/whisper-cli" -m "$VR_MODEL" -l "$VR_LANG" -t "$VR_THREADS" \
+# VAD: паузы на «подумать» вырезаются; pad 200 мс — не обрезать края слов
+vad=()
+[ "$VR_VAD" = 1 ] && vad=(--vad -vm "$VR_VAD_MODEL" -vp 200)
+
+"$VR_BIN/whisper-cli" -m "$VR_MODEL" "${vad[@]}" -l "$VR_LANG" -t "$VR_THREADS" \
   --prompt "$VR_PROMPT" -nt -np -otxt -of "$tmp/out" -f "$tmp/in.wav" >/dev/null 2>"$tmp/log" \
   || { cat "$tmp/log" >&2; exit 1; }
 

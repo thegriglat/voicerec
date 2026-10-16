@@ -6,6 +6,11 @@ VOICEREC_HOME="${VOICEREC_HOME:-$HOME/voicerec}"
 # Другие: small, medium, large-v3 (скачать: vr-model <name>).
 VR_MODEL_NAME="${VR_MODEL_NAME:-large-v3-turbo-q5_0}"
 VR_MODEL="${VR_MODEL:-$VOICEREC_HOME/models/ggml-$VR_MODEL_NAME.bin}"
+# VAD (Silero): вырезает тишину до распознавания. Без него whisper на паузах
+# выдумывает фразы из субтитров («Продолжение следует...»). 0 — выключить.
+VR_VAD="${VR_VAD:-1}"
+VR_VAD_MODEL_NAME="${VR_VAD_MODEL_NAME:-silero-v6.2.0}"
+VR_VAD_MODEL="$VOICEREC_HOME/models/ggml-$VR_VAD_MODEL_NAME.bin"
 VR_LANG="${VR_LANG:-ru}"
 VR_THREADS="${VR_THREADS:-8}"
 
