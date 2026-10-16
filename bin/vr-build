@@ -25,5 +25,5 @@ rm -rf build
 cmake -B build "${flags[@]}"
 cmake --build build -j"$(nproc)" --target whisper-cli whisper-stream
 
-"$VOICEREC_HOME/bin/vr-model" large-v3-turbo
+"$VOICEREC_HOME/bin/vr-model" "$VR_MODEL_NAME"
 ls -1 build/bin/whisper-cli build/bin/whisper-stream "$VR_MODEL"

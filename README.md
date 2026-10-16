@@ -1,7 +1,7 @@
 # voicerec
 
 Наговорить текст (например, ТЗ для ИИ) в микрофон и получить его в буфере обмена.
-Локально и офлайн: [whisper.cpp](https://github.com/ggml-org/whisper.cpp) + модель `large-v3-turbo`.
+Локально и офлайн: [whisper.cpp](https://github.com/ggml-org/whisper.cpp) + модель `large-v3-turbo-q5_0`.
 Звук никуда не уходит.
 
 ## Установка
@@ -18,7 +18,7 @@ source ~/.bashrc
 1. Ставит пакеты через `apt` (спросит пароль sudo). Под видеокарту — автоматически:
    NVIDIA → `nvidia-cuda-toolkit`, AMD/Intel → Vulkan, иначе только CPU.
 2. Подтягивает сабмодуль whisper.cpp (`src/`, версия закреплена в репозитории) и собирает его под найденный бэкенд.
-3. Скачивает модель `large-v3-turbo` (~1.6 ГБ) в `models/`.
+3. Скачивает модель `large-v3-turbo-q5_0` (~550 МБ) в `models/`. Оборванная загрузка докачивается.
 4. Добавляет `bin/` в `PATH` через `~/.bashrc`.
 
 Без sudo или с уже стоящими пакетами: `./setup.sh --no-packages`.
@@ -41,7 +41,7 @@ source ~/.bashrc
 | `vr toggle` | для горячей клавиши: первый вызов — старт, второй — стоп и расшифровка (уведомление) |
 | `vr-stream` | живая расшифровка по ходу речи (качество ниже) |
 | `vr-transcribe <файл>` | расшифровать любой аудиофайл |
-| `vr-model <name>` | скачать другую модель (`small`, `medium`, `large-v3`) |
+| `vr-model <name>` | скачать другую модель (`large-v3-turbo`, `small`, `medium`, `large-v3`) |
 | `vr-build` | пересобрать whisper.cpp (после смены железа/драйверов) |
 
 Каждая запись сохраняется в `recordings/<дата>.wav` и `.txt`.
@@ -62,7 +62,8 @@ source ~/.bashrc
 - `VR_PROMPT` — словарь терминов: whisper берёт из него написание (латиница, регистр).
   Впишите свои названия проектов и технологий;
 - `VR_DEVICE` — микрофон, список: `arecord -L`;
-- `VR_MODEL` — путь к модели, `VR_THREADS` — потоки CPU.
+- `VR_MODEL_NAME` — модель (`large-v3-turbo-q5_0`, `large-v3-turbo`, `small`...),
+  `VR_THREADS` — потоки CPU.
 
 ## Если не работает
 
@@ -70,7 +71,7 @@ source ~/.bashrc
   проверить запись: `arecord -d 3 /tmp/t.wav && aplay /tmp/t.wav`.
 - **Медленно** — сборка ушла на CPU: смотрите строку `backend:` в выводе `vr-build`.
   Для проверки скорости возьмите модель поменьше: `vr-model small`,
-  `VR_MODEL=~/voicerec/models/ggml-small.bin vr`.
+  `VR_MODEL_NAME=small vr`.
 - **Wayland** — буфер обмена через `xclip` работает только под X11/XWayland;
   на чистом Wayland замените `xclip -selection clipboard` на `wl-copy` в `bin/vr`.
 

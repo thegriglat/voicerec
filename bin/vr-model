@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Скачать модель whisper в $VOICEREC_HOME/models (и только туда, никаких ~/.cache).
-#   vr-model large-v3-turbo | large-v3 | medium | small | base
-# Использовать другую: VR_MODEL=~/voicerec/models/ggml-<name>.bin vr
+#   vr-model large-v3-turbo-q5_0 | large-v3-turbo | large-v3 | medium | small | base
+# Использовать другую: VR_MODEL_NAME=<name> vr
 set -euo pipefail
 source "$(dirname "$(readlink -f "$0")")/../config.sh"
 
