@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
-# Клонирует и собирает whisper.cpp, при отсутствии скачивает модель.
+# Собирает whisper.cpp (сабмодуль src/, версия закреплена в репозитории),
+# при отсутствии скачивает модель.
 # Бэкенд выбирается сам: CUDA (NVIDIA, есть nvcc) → Vulkan (AMD/Intel, есть glslc) → CPU.
+# Обновить whisper.cpp: git submodule update --remote src && vr-build, затем закоммитить src.
 set -euo pipefail
 source "$(dirname "$(readlink -f "$0")")/../config.sh"
 
-if [ -d "$VOICEREC_HOME/src/.git" ]; then
-  git -C "$VOICEREC_HOME/src" pull --ff-only || true
-else
-  git clone --depth 1 https://github.com/ggml-org/whisper.cpp "$VOICEREC_HOME/src"
-fi
+git -C "$VOICEREC_HOME" submodule update --init --depth 1 src
 cd "$VOICEREC_HOME/src"
 
 flags=(-DCMAKE_BUILD_TYPE=Release -DWHISPER_SDL2=ON -DBUILD_SHARED_LIBS=OFF)

@@ -17,7 +17,7 @@ source ~/.bashrc
 
 1. Ставит пакеты через `apt` (спросит пароль sudo). Под видеокарту — автоматически:
    NVIDIA → `nvidia-cuda-toolkit`, AMD/Intel → Vulkan, иначе только CPU.
-2. Клонирует whisper.cpp в `src/` и собирает его под найденный бэкенд.
+2. Подтягивает сабмодуль whisper.cpp (`src/`, версия закреплена в репозитории) и собирает его под найденный бэкенд.
 3. Скачивает модель `large-v3-turbo` (~1.6 ГБ) в `models/`.
 4. Добавляет `bin/` в `PATH` через `~/.bashrc`.
 
@@ -42,7 +42,7 @@ source ~/.bashrc
 | `vr-stream` | живая расшифровка по ходу речи (качество ниже) |
 | `vr-transcribe <файл>` | расшифровать любой аудиофайл |
 | `vr-model <name>` | скачать другую модель (`small`, `medium`, `large-v3`) |
-| `vr-build` | пересобрать whisper.cpp (обновляет `src/`) |
+| `vr-build` | пересобрать whisper.cpp (после смены железа/драйверов) |
 
 Каждая запись сохраняется в `recordings/<дата>.wav` и `.txt`.
 
@@ -73,3 +73,13 @@ source ~/.bashrc
   `VR_MODEL=~/voicerec/models/ggml-small.bin vr`.
 - **Wayland** — буфер обмена через `xclip` работает только под X11/XWayland;
   на чистом Wayland замените `xclip -selection clipboard` на `wl-copy` в `bin/vr`.
+
+## Обновить whisper.cpp
+
+`src/` — git submodule, версия закреплена коммитом этого репозитория:
+
+```bash
+git submodule update --remote src
+vr-build
+git commit -am "Bump whisper.cpp"
+```

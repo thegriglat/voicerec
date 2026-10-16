@@ -1,0 +1,5 @@
+[submodule "src"]
+	path = src
+	url = https://github.com/ggml-org/whisper.cpp
+	branch = master
+	shallow = true
