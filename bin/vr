@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Наговорить текст: запись с микрофона → расшифровка → stdout + буфер обмена + recordings/.
+#   vr          запись до Ctrl+C (или Enter), затем расшифровка
+#   vr toggle   первый вызов начинает запись, второй — останавливает и расшифровывает
+#               (для горячей клавиши; результат приходит уведомлением и в буфер)
+set -euo pipefail
+source "$(dirname "$(readlink -f "$0")")/../config.sh"
+
+mkdir -p "$VR_RECORDINGS"
+pidfile="${XDG_RUNTIME_DIR:-/tmp}/voicerec.pid"
+wavfile="${XDG_RUNTIME_DIR:-/tmp}/voicerec.wav"
+
+# exec: вызывается только в фоне (record &), так $! — это сам arecord, а не подоболочка
+record() {
+  exec arecord -q -D "$VR_DEVICE" -f S16_LE -r 16000 -c 1 "$wavfile"
+}
+
+finish() {
+  local stamp text
+  stamp="$(date +%Y-%m-%d_%H-%M-%S)"
+  cp "$wavfile" "$VR_RECORDINGS/$stamp.wav"
+  text="$("$VOICEREC_HOME/bin/vr-transcribe" "$wavfile")"
+  rm -f "$wavfile"
+  printf '%s\n' "$text" > "$VR_RECORDINGS/$stamp.txt"
+  printf '%s' "$text" | xclip -selection clipboard
+  printf '%s\n' "$text"
+}
+
+case "${1:-}" in
+  toggle)
+    if [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; then
+      kill -TERM "$(cat "$pidfile")"
+      # ждём, пока arecord допишет заголовок wav
+      while kill -0 "$(cat "$pidfile")" 2>/dev/null; do sleep 0.1; done
+      rm -f "$pidfile"
+      notify-send -t 2000 "voicerec" "Расшифровка..."
+      text="$(finish)"
+      notify-send -t 5000 "voicerec: в буфере" "$text"
+    else
+      record & echo $! > "$pidfile"
+      notify-send -t 2000 "voicerec" "Запись... (повторите хоткей, чтобы закончить)"
+    fi
+    ;;
+  "")
+    echo "Запись... Enter или Ctrl+C — закончить" >&2
+    record & rec_pid=$!
+    trap 'kill -TERM $rec_pid 2>/dev/null' INT
+    read -r _ || true
+    kill -TERM "$rec_pid" 2>/dev/null || true
+    wait "$rec_pid" || true
+    trap - INT
+    echo "Расшифровка..." >&2
+    finish
+    echo "(скопировано в буфер обмена)" >&2
+    ;;
+  *)
+    sed -n '2,6p' "$0"; exit 1 ;;
+esac

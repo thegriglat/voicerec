@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Расшифровать аудиофайл любого формата: vr-transcribe file.ogg > text.txt
+set -euo pipefail
+source "$(dirname "$(readlink -f "$0")")/../config.sh"
+
+in="${1:?usage: vr-transcribe <audio-file>}"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+# whisper.cpp принимает только 16 kHz mono wav
+ffmpeg -loglevel error -i "$in" -ar 16000 -ac 1 -c:a pcm_s16le "$tmp/in.wav"
+
+"$VR_BIN/whisper-cli" -m "$VR_MODEL" -l "$VR_LANG" -t "$VR_THREADS" \
+  --prompt "$VR_PROMPT" -nt -np -otxt -of "$tmp/out" -f "$tmp/in.wav" >/dev/null 2>"$tmp/log" \
+  || { cat "$tmp/log" >&2; exit 1; }
+
+# whisper режет текст на сегменты по строкам — склеиваем в абзац
+sed 's/^ *//' "$tmp/out.txt" | tr '\n' ' ' | sed 's/  */ /g; s/ $//'
+echo

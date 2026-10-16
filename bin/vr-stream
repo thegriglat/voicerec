@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Живая расшифровка с микрофона (текст печатается по ходу речи). Ctrl+C — выход.
+# Качество ниже, чем у vr: модель видит короткие окна, а не фразу целиком.
+set -euo pipefail
+source "$(dirname "$(readlink -f "$0")")/../config.sh"
+
+exec "$VR_BIN/whisper-stream" -m "$VR_MODEL" -l "$VR_LANG" -t "$VR_THREADS" \
+  --step 0 --length 30000 -vth 0.6 "$@"
