@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
-# Скачать модель whisper: vr-model small | medium | large-v3 | large-v3-turbo
-# Использовать: VR_MODEL=~/voicerec/models/ggml-<name>.bin vr
+# Скачать модель whisper в $VOICEREC_HOME/models (и только туда, никаких ~/.cache).
+#   vr-model large-v3-turbo | large-v3 | medium | small | base
+# Использовать другую: VR_MODEL=~/voicerec/models/ggml-<name>.bin vr
 set -euo pipefail
 source "$(dirname "$(readlink -f "$0")")/../config.sh"
 
-bash "$VOICEREC_HOME/src/models/download-ggml-model.sh" "${1:?usage: vr-model <name>}" "$VOICEREC_HOME/models"
+name="${1:?usage: vr-model <name>}"
+dest="$VOICEREC_HOME/models/ggml-$name.bin"
+url="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-$name.bin"
+
+mkdir -p "$VOICEREC_HOME/models"
+if [ -f "$dest" ]; then
+  echo "уже есть: $dest"
+  exit 0
+fi
+
+# .part + -C -: оборванная загрузка докачивается, а не начинается заново
+curl -fL --progress-bar -C - -o "$dest.part" "$url"
+mv "$dest.part" "$dest"
+echo "$dest"
