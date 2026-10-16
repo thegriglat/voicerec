@@ -13,7 +13,7 @@ install_packages() {
     return
   fi
 
-  local pkgs=(build-essential cmake git ffmpeg alsa-utils libnotify-bin)
+  local pkgs=(build-essential cmake git python3 ffmpeg alsa-utils libnotify-bin)
   if command -v nvidia-smi >/dev/null || lspci 2>/dev/null | grep -qi 'vga.*nvidia'; then
     echo "GPU: NVIDIA → CUDA"
     pkgs+=(nvidia-cuda-toolkit)

@@ -3,6 +3,8 @@
 #   vr [файл]          запись до Enter/Ctrl+C, затем расшифровка
 #   vr toggle [файл]   первый вызов начинает запись, второй — останавливает и расшифровывает
 #                      (для горячей клавиши; файл задаётся при старте записи)
+#   vr meet [файл]     запись встречи: микрофон + звук компьютера (Meet, Zoom...),
+#   vr meet toggle [файл]  в расшифровке реплики с временем и меткой «Я»/«Собеседники»
 # С файлом текст дописывается в его конец отдельным абзацем — ТЗ можно наговаривать
 # кусками. Без файла — только recordings/<дата>.txt. Копия каждой записи (ogg + txt)
 # всегда остаётся в recordings/.
@@ -13,11 +15,23 @@ mkdir -p "$VR_RECORDINGS"
 state="${XDG_RUNTIME_DIR:-/tmp}/voicerec"
 pidfile="$state.pid"
 outfile_state="$state.out"
+mode_state="$state.mode"
 wavfile="$state.wav"
 
-# exec: вызывается только в фоне (record &), так $! — это сам arecord, а не подоболочка
+mode=mic
+[ "${1:-}" = meet ] && { mode=meet; shift; }
+
+# exec: вызывается только в фоне (record &), так $! — это сам arecord/ffmpeg, а не подоболочка
 record() {
-  exec arecord -q -D "$VR_DEVICE" -f S16_LE -r 16000 -c 1 "$wavfile"
+  if [ "$mode" = meet ]; then
+    # стерео: левый канал — микрофон, правый — то, что играет в динамиках
+    exec ffmpeg -nostdin -loglevel error -y \
+      -f pulse -channels 1 -sample_rate 16000 -i "$VR_MEET_MIC" \
+      -f pulse -channels 1 -sample_rate 16000 -i "$VR_MEET_SPEAKERS" \
+      -filter_complex "join=inputs=2:channel_layout=stereo" -c:a pcm_s16le "$wavfile"
+  else
+    exec arecord -q -D "$VR_DEVICE" -f S16_LE -r 16000 -c 1 "$wavfile"
+  fi
 }
 
 # $1 — файл, в который дописать текст (пусто — только recordings/)
@@ -25,8 +39,12 @@ finish() {
   local out="$1" stamp text
   stamp="$(date +%Y-%m-%d_%H-%M-%S)"
   # архив в Opus 24 кбит/с: для речи без слышимых потерь, в ~10 раз меньше wav
-  ffmpeg -loglevel error -i "$wavfile" -c:a libopus -b:a 24k -application voip "$VR_RECORDINGS/$stamp.ogg"
-  text="$("$VOICEREC_HOME/bin/vr-transcribe" "$wavfile")"
+  local opus=(-b:a 24k) meet=()
+  # встреча: каналы кодируются раздельно (mapping_family 255), иначе стерео-кодирование
+  # Opus подмешивает каналы друг в друга и реплики двоятся в расшифровке
+  [ "$mode" = meet ] && { opus=(-b:a 48k -mapping_family 255); meet=(--meet); stamp="$stamp-meet"; }
+  ffmpeg -nostdin -loglevel error -i "$wavfile" -c:a libopus "${opus[@]}" -application voip "$VR_RECORDINGS/$stamp.ogg"
+  text="$("$VOICEREC_HOME/bin/vr-transcribe" "${meet[@]}" "$wavfile")"
   rm -f "$wavfile"
   printf '%s\n' "$text" > "$VR_RECORDINGS/$stamp.txt"
   if [ -n "$out" ]; then
@@ -47,21 +65,23 @@ case "${1:-}" in
   toggle)
     if [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; then
       kill -TERM "$(cat "$pidfile")"
-      # ждём, пока arecord допишет заголовок wav
+      # ждём, пока arecord/ffmpeg допишет заголовок wav
       while kill -0 "$(cat "$pidfile")" 2>/dev/null; do sleep 0.1; done
       out="$(cat "$outfile_state")"
-      rm -f "$pidfile" "$outfile_state"
+      mode="$(cat "$mode_state" 2>/dev/null || echo mic)"
+      rm -f "$pidfile" "$outfile_state" "$mode_state"
       notify-send -t 2000 "voicerec" "Расшифровка..."
       text="$(finish "$out")"
       notify-send -t 5000 "voicerec: ${out:-$VR_RECORDINGS}" "$text"
     else
       abspath "${2:-}" > "$outfile_state"
+      echo "$mode" > "$mode_state"
       record & echo $! > "$pidfile"
       notify-send -t 2000 "voicerec" "Запись... (повторите хоткей, чтобы закончить)"
     fi
     ;;
   -h|--help)
-    sed -n '2,8p' "$0" ;;
+    sed -n '2,10p' "$0" ;;
   *)
     out="$(abspath "${1:-}")"
     echo "Запись... Enter или Ctrl+C — закончить" >&2

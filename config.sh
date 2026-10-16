@@ -24,3 +24,15 @@ VR_DEVICE="${VR_DEVICE:-default}"
 
 VR_BIN="$VOICEREC_HOME/src/build/bin"
 VR_RECORDINGS="$VOICEREC_HOME/recordings"
+
+# Запись встреч (vr meet): микрофон и звук компьютера — в разные каналы.
+# Имена источников PulseAudio/PipeWire, список: pactl list short sources
+# (звук компьютера — источник *.monitor нужного выхода).
+VR_MEET_MIC="${VR_MEET_MIC:-default}"
+VR_MEET_SPEAKERS="${VR_MEET_SPEAKERS:-@DEFAULT_MONITOR@}"
+# Метки реплик в расшифровке
+VR_MEET_ME="${VR_MEET_ME:-Я}"
+VR_MEET_THEM="${VR_MEET_THEM:-Собеседники}"
+# Убирать эхо: без наушников микрофон слышит собеседников, и их реплики
+# дублируются с меткой «Я». Дубль узнаётся по совпадению времени и текста. 0 — выключить.
+VR_MEET_DEDUP="${VR_MEET_DEDUP:-1}"
