@@ -9,7 +9,7 @@ source "$(dirname "$(readlink -f "$0")")/../config.sh"
 git -C "$VOICEREC_HOME" submodule update --init --depth 1 src
 cd "$VOICEREC_HOME/src"
 
-flags=(-DCMAKE_BUILD_TYPE=Release -DWHISPER_SDL2=ON -DBUILD_SHARED_LIBS=OFF)
+flags=(-DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF)
 if command -v nvcc >/dev/null; then
   echo "backend: CUDA"
   flags+=(-DGGML_CUDA=ON)
@@ -23,8 +23,8 @@ fi
 # Смена бэкенда требует чистого кэша cmake
 rm -rf build
 cmake -B build "${flags[@]}"
-cmake --build build -j"$(nproc)" --target whisper-cli whisper-stream
+cmake --build build -j"$(nproc)" --target whisper-cli
 
 "$VOICEREC_HOME/bin/vr-model" "$VR_VAD_MODEL_NAME"
 "$VOICEREC_HOME/bin/vr-model" "$VR_MODEL_NAME"
-ls -1 build/bin/whisper-cli build/bin/whisper-stream "$VR_VAD_MODEL" "$VR_MODEL"
+ls -1 build/bin/whisper-cli "$VR_VAD_MODEL" "$VR_MODEL"
