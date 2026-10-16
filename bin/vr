@@ -4,7 +4,7 @@
 #   vr toggle [файл]   первый вызов начинает запись, второй — останавливает и расшифровывает
 #                      (для горячей клавиши; файл задаётся при старте записи)
 # С файлом текст дописывается в его конец отдельным абзацем — ТЗ можно наговаривать
-# кусками. Без файла — только recordings/<дата>.txt. Копия каждой записи (wav + txt)
+# кусками. Без файла — только recordings/<дата>.txt. Копия каждой записи (ogg + txt)
 # всегда остаётся в recordings/.
 set -euo pipefail
 source "$(dirname "$(readlink -f "$0")")/../config.sh"
@@ -24,7 +24,8 @@ record() {
 finish() {
   local out="$1" stamp text
   stamp="$(date +%Y-%m-%d_%H-%M-%S)"
-  cp "$wavfile" "$VR_RECORDINGS/$stamp.wav"
+  # архив в Opus 24 кбит/с: для речи без слышимых потерь, в ~10 раз меньше wav
+  ffmpeg -loglevel error -i "$wavfile" -c:a libopus -b:a 24k -application voip "$VR_RECORDINGS/$stamp.ogg"
   text="$("$VOICEREC_HOME/bin/vr-transcribe" "$wavfile")"
   rm -f "$wavfile"
   printf '%s\n' "$text" > "$VR_RECORDINGS/$stamp.txt"
