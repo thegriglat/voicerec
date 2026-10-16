@@ -19,7 +19,7 @@ install_packages() {
     pkgs+=(nvidia-cuda-toolkit)
   elif lspci 2>/dev/null | grep -qiE 'vga.*(amd|ati|intel)'; then
     echo "GPU: AMD/Intel → Vulkan"
-    pkgs+=(libvulkan-dev glslc mesa-vulkan-drivers vulkan-tools)
+    pkgs+=(libvulkan-dev glslc spirv-headers mesa-vulkan-drivers vulkan-tools)
   else
     echo "GPU не найден → CPU"
   fi
