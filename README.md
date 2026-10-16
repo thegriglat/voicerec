@@ -2,32 +2,38 @@
 
 Наговорить текст (например, ТЗ для ИИ) в микрофон и получить его в буфере обмена.
 Локально и офлайн: [whisper.cpp](https://github.com/ggml-org/whisper.cpp) + модель `large-v3-turbo`.
+Звук никуда не уходит.
 
 ## Установка
 
-Пакеты (Debian/Ubuntu):
-
-```bash
-# общее
-sudo apt install build-essential cmake git ffmpeg alsa-utils xclip libnotify-bin libsdl2-dev
-# NVIDIA — CUDA
-sudo apt install nvidia-cuda-toolkit
-# AMD/Intel — Vulkan
-sudo apt install libvulkan-dev glslc mesa-vulkan-drivers vulkan-tools
-```
-
-Сборка (клонирует whisper.cpp в `src/`, скачивает модель ~1.6 ГБ в `models/`):
-
 ```bash
 git clone <repo> ~/voicerec
-~/voicerec/bin/vr-build
-echo 'export PATH="$HOME/voicerec/bin:$PATH"' >> ~/.bashrc
+cd ~/voicerec
+./setup.sh
+source ~/.bashrc
 ```
 
-Бэкенд выбирается автоматически: CUDA → Vulkan → CPU. Сменили железо или драйверы —
-перезапустите `vr-build`.
+`setup.sh` делает всё сам:
 
-## Команды
+1. Ставит пакеты через `apt` (спросит пароль sudo). Под видеокарту — автоматически:
+   NVIDIA → `nvidia-cuda-toolkit`, AMD/Intel → Vulkan, иначе только CPU.
+2. Клонирует whisper.cpp в `src/` и собирает его под найденный бэкенд.
+3. Скачивает модель `large-v3-turbo` (~1.6 ГБ) в `models/`.
+4. Добавляет `bin/` в `PATH` через `~/.bashrc`.
+
+Без sudo или с уже стоящими пакетами: `./setup.sh --no-packages`.
+Сменили видеокарту или драйверы — запустите `./setup.sh` ещё раз.
+
+Не Debian/Ubuntu — поставьте аналоги пакетов из `setup.sh` (`install_packages`)
+и запустите `./setup.sh --no-packages`.
+
+### NVIDIA
+
+Нужен проприетарный драйвер (`nvidia-smi` должен работать) и репозиторий `non-free`
+(Debian) для `nvidia-cuda-toolkit`. Проверка, что сборка взяла GPU: в выводе `vr-build`
+строка `backend: CUDA`.
+
+## Использование
 
 | Команда | Что делает |
 |---|---|
@@ -36,16 +42,34 @@ echo 'export PATH="$HOME/voicerec/bin:$PATH"' >> ~/.bashrc
 | `vr-stream` | живая расшифровка по ходу речи (качество ниже) |
 | `vr-transcribe <файл>` | расшифровать любой аудиофайл |
 | `vr-model <name>` | скачать другую модель (`small`, `medium`, `large-v3`) |
+| `vr-build` | пересобрать whisper.cpp (обновляет `src/`) |
 
 Каждая запись сохраняется в `recordings/<дата>.wav` и `.txt`.
 
+Типичный сценарий: `vr`, наговорить задачу, Enter, вставить из буфера в чат с ИИ.
+
+### Горячая клавиша
+
+Привязать `~/voicerec/bin/vr toggle` в настройках клавиатуры рабочего стола
+(GNOME: Настройки → Клавиатура → Свои сочетания). Нажали — говорите, нажали ещё раз —
+текст в буфере.
+
 ## Настройка
 
-`config.sh`, любую переменную можно переопределить окружением:
+`config.sh`, любую переменную можно переопределить окружением (`VR_LANG=en vr`):
 
 - `VR_LANG` — язык (`ru`, `en`, `auto`);
-- `VR_PROMPT` — словарь терминов: whisper берёт из него написание (латиница, регистр);
-- `VR_DEVICE` — микрофон (`arecord -L`);
-- `VR_MODEL`, `VR_THREADS`.
+- `VR_PROMPT` — словарь терминов: whisper берёт из него написание (латиница, регистр).
+  Впишите свои названия проектов и технологий;
+- `VR_DEVICE` — микрофон, список: `arecord -L`;
+- `VR_MODEL` — путь к модели, `VR_THREADS` — потоки CPU.
 
-Горячая клавиша (X11): привязать `~/voicerec/bin/vr toggle` в настройках клавиатуры окружения.
+## Если не работает
+
+- **Пустой текст / тишина** — не тот микрофон. `arecord -L`, выбрать устройство в `VR_DEVICE`;
+  проверить запись: `arecord -d 3 /tmp/t.wav && aplay /tmp/t.wav`.
+- **Медленно** — сборка ушла на CPU: смотрите строку `backend:` в выводе `vr-build`.
+  Для проверки скорости возьмите модель поменьше: `vr-model small`,
+  `VR_MODEL=~/voicerec/models/ggml-small.bin vr`.
+- **Wayland** — буфер обмена через `xclip` работает только под X11/XWayland;
+  на чистом Wayland замените `xclip -selection clipboard` на `wl-copy` в `bin/vr`.
