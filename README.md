@@ -90,17 +90,20 @@ vr tz.md   # что не трогать, Enter
   на паузах выдумывает фразы вроде «Продолжение следует...»;
 - `VR_PROMPT` — словарь терминов: whisper берёт из него написание (латиница, регистр).
   Впишите свои названия проектов и технологий;
-- `VR_DEVICE` — микрофон, список: `arecord -L`;
-- `VR_MEET_MIC`, `VR_MEET_SPEAKERS` — источники для `vr meet` (по умолчанию системные
-  микрофон и выход), список: `pactl list short sources`; `VR_MEET_ME`, `VR_MEET_THEM` — метки;
+- `VR_MIC`, `VR_SPEAKERS` — микрофон и звук компьютера (для `vr meet`), по умолчанию
+  системные. Обычно задавать не нужно: `vr` из терминала сам предлагает выбрать устройства
+  (Enter — оставить прошлые), `vr devices` — выбрать без записи; выбор запоминается
+  в `~/.config/voicerec/devices`, и `vr toggle` с горячей клавиши берёт его же.
+  Список вручную: `pactl list short sources`;
+- `VR_MEET_ME`, `VR_MEET_THEM` — метки;
   `VR_MEET_DEDUP` — убирать эхо собеседников из канала микрофона (по умолчанию `1`);
 - `VR_MODEL_NAME` — модель (`large-v3`, `large-v3-turbo-q5_0`, `large-v3-turbo`, `small`...),
   `VR_THREADS` — потоки CPU.
 
 ## Если не работает
 
-- **Пустой текст / тишина** — не тот микрофон. `arecord -L`, выбрать устройство в `VR_DEVICE`;
-  проверить запись: `arecord -d 3 /tmp/t.wav && aplay /tmp/t.wav`.
+- **Пустой текст / тишина** — не тот микрофон: `vr devices`. Проверить запись:
+  `ffmpeg -f pulse -i default -t 3 /tmp/t.wav && aplay /tmp/t.wav`.
 - **Медленно** — сборка ушла на CPU: смотрите строку `backend:` в выводе `vr-build`.
   Для проверки скорости возьмите модель поменьше: `vr-model small`,
   `VR_MODEL_NAME=small vr`.

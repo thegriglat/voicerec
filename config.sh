@@ -18,18 +18,21 @@ VR_THREADS="${VR_THREADS:-8}"
 # Whisper подхватывает написание из подсказки (латиница, регистр).
 VR_PROMPT="${VR_PROMPT:-Техническое задание для разработчика. NestJS, Prisma, Quasar, Vue, BullMQ, Redis, PostgreSQL, Docker, API, DTO, endpoint, backend, frontend.}"
 
-# Микрофон: default — системный по умолчанию (PipeWire/PulseAudio).
-# Список устройств: arecord -L
-VR_DEVICE="${VR_DEVICE:-default}"
 
 VR_BIN="$VOICEREC_HOME/src/build/bin"
 VR_RECORDINGS="$VOICEREC_HOME/recordings"
 
+# Устройства — источники PulseAudio/PipeWire. Выбираются при запуске vr из терминала
+# или командой vr devices и запоминаются в $VR_DEVICES_FILE.
+# Вручную: имена из pactl list short sources (звук компьютера — *.monitor нужного выхода).
+VR_DEVICES_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/voicerec/devices"
+[ -f "$VR_DEVICES_FILE" ] && source "$VR_DEVICES_FILE"
+# Микрофон: default — системный по умолчанию
+VR_MIC="${VR_MIC:-${VR_MIC_SAVED:-default}}"
+# Звук компьютера для vr meet: монитор выхода по умолчанию
+VR_SPEAKERS="${VR_SPEAKERS:-${VR_SPEAKERS_SAVED:-@DEFAULT_MONITOR@}}"
+
 # Запись встреч (vr meet): микрофон и звук компьютера — в разные каналы.
-# Имена источников PulseAudio/PipeWire, список: pactl list short sources
-# (звук компьютера — источник *.monitor нужного выхода).
-VR_MEET_MIC="${VR_MEET_MIC:-default}"
-VR_MEET_SPEAKERS="${VR_MEET_SPEAKERS:-@DEFAULT_MONITOR@}"
 # Метки реплик в расшифровке
 VR_MEET_ME="${VR_MEET_ME:-Я}"
 VR_MEET_THEM="${VR_MEET_THEM:-Собеседники}"

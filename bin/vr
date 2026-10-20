@@ -5,6 +5,8 @@
 #                      (для горячей клавиши; файл задаётся при старте записи)
 #   vr meet [файл]     запись встречи: микрофон + звук компьютера (Meet, Zoom...),
 #   vr meet toggle [файл]  в расшифровке реплики с временем и меткой «Я»/«Собеседники»
+#   vr devices         выбрать микрофон и звук компьютера (запуск из терминала спрашивает
+#                      сам, toggle берёт последний выбор)
 # С файлом текст дописывается в его конец отдельным абзацем — ТЗ можно наговаривать
 # кусками. Без файла — только recordings/<дата>.txt. Копия каждой записи (ogg + txt)
 # всегда остаётся в recordings/.
@@ -21,16 +23,51 @@ wavfile="$state.wav"
 mode=mic
 [ "${1:-}" = meet ] && { mode=meet; shift; }
 
-# exec: вызывается только в фоне (record &), так $! — это сам arecord/ffmpeg, а не подоболочка
+# Источники PulseAudio: «имя<TAB>описание»; $1 = mic — входы, speakers — мониторы выходов
+list_sources() {
+  LANG=C pactl list sources | awk -v kind="$1" -F': ' '
+    /^\tName: /        { name = $2 }
+    /^\tDescription: / { if ((name ~ /\.monitor$/) == (kind == "speakers")) print name "\t" $2 }'
+}
+
+# $1 — mic/speakers, $2 — заголовок, $3 — текущий выбор; печатает выбранное имя
+pick_source() {
+  local kind="$1" title="$2" cur="$3" names=() descs=() name desc i n mark
+  while IFS=$'\t' read -r name desc; do names+=("$name"); descs+=("$desc"); done < <(list_sources "$kind")
+  echo "$title:" >&2
+  for i in "${!names[@]}"; do
+    mark=" "; [ "${names[$i]}" = "$cur" ] && mark="*"
+    printf ' %s %d) %s\n' "$mark" $((i + 1)) "${descs[$i]}" >&2
+  done
+  mark=" "; case "$cur" in default|@DEFAULT_*) mark="*" ;; esac
+  printf ' %s 0) по умолчанию в системе\n' "$mark" >&2
+  read -rp "Номер [Enter — оставить *]: " n </dev/tty >&2 || n=""
+  if [ -z "$n" ]; then echo "$cur"
+  elif [ "$n" = 0 ]; then [ "$kind" = mic ] && echo default || echo @DEFAULT_MONITOR@
+  elif [ "$n" -ge 1 ] 2>/dev/null && [ "$n" -le "${#names[@]}" ]; then echo "${names[$((n - 1))]}"
+  else echo "Нет такого номера, оставлено прежнее" >&2; echo "$cur"
+  fi
+}
+
+# Выбор устройств с запоминанием; $1 = all — спросить и звук компьютера, не только для meet
+choose_devices() {
+  VR_MIC="$(pick_source mic "Микрофон" "$VR_MIC")"
+  [ "$mode" = meet ] || [ "${1:-}" = all ] && VR_SPEAKERS="$(pick_source speakers "Звук компьютера" "$VR_SPEAKERS")"
+  mkdir -p "$(dirname "$VR_DEVICES_FILE")"
+  printf 'VR_MIC_SAVED=%q\nVR_SPEAKERS_SAVED=%q\n' "$VR_MIC" "$VR_SPEAKERS" > "$VR_DEVICES_FILE"
+}
+
+# exec: вызывается только в фоне (record &), так $! — это сам ffmpeg, а не подоболочка
 record() {
   if [ "$mode" = meet ]; then
     # стерео: левый канал — микрофон, правый — то, что играет в динамиках
     exec ffmpeg -nostdin -loglevel error -y \
-      -f pulse -channels 1 -sample_rate 16000 -i "$VR_MEET_MIC" \
-      -f pulse -channels 1 -sample_rate 16000 -i "$VR_MEET_SPEAKERS" \
+      -f pulse -channels 1 -sample_rate 16000 -i "$VR_MIC" \
+      -f pulse -channels 1 -sample_rate 16000 -i "$VR_SPEAKERS" \
       -filter_complex "join=inputs=2:channel_layout=stereo" -c:a pcm_s16le "$wavfile"
   else
-    exec arecord -q -D "$VR_DEVICE" -f S16_LE -r 16000 -c 1 "$wavfile"
+    exec ffmpeg -nostdin -loglevel error -y \
+      -f pulse -channels 1 -sample_rate 16000 -i "$VR_MIC" -c:a pcm_s16le "$wavfile"
   fi
 }
 
@@ -65,7 +102,7 @@ case "${1:-}" in
   toggle)
     if [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; then
       kill -TERM "$(cat "$pidfile")"
-      # ждём, пока arecord/ffmpeg допишет заголовок wav
+      # ждём, пока ffmpeg допишет заголовок wav
       while kill -0 "$(cat "$pidfile")" 2>/dev/null; do sleep 0.1; done
       out="$(cat "$outfile_state")"
       mode="$(cat "$mode_state" 2>/dev/null || echo mic)"
@@ -80,10 +117,13 @@ case "${1:-}" in
       notify-send -t 2000 "voicerec" "Запись... (повторите хоткей, чтобы закончить)"
     fi
     ;;
+  devices)
+    choose_devices all ;;
   -h|--help)
-    sed -n '2,10p' "$0" ;;
+    sed -n '2,12p' "$0" ;;
   *)
     out="$(abspath "${1:-}")"
+    [ -t 0 ] && choose_devices
     echo "Запись... Enter или Ctrl+C — закончить" >&2
     record & rec_pid=$!
     trap 'kill -TERM $rec_pid 2>/dev/null' INT
