@@ -1,7 +1,7 @@
 # voicerec
 
 Наговорить текст (например, ТЗ для ИИ) в микрофон и получить его в файле.
-Локально и офлайн: [whisper.cpp](https://github.com/ggml-org/whisper.cpp) + модель `large-v3-turbo-q5_0`.
+Локально и офлайн: [whisper.cpp](https://github.com/ggml-org/whisper.cpp) + модель `large-v3`.
 Звук никуда не уходит.
 
 ## Установка
@@ -18,7 +18,7 @@ source ~/.bashrc
 1. Ставит пакеты через `apt` (спросит пароль sudo). Под видеокарту — автоматически:
    NVIDIA → `nvidia-cuda-toolkit`, AMD/Intel → Vulkan, иначе только CPU.
 2. Подтягивает сабмодуль whisper.cpp (`src/`, версия закреплена в репозитории) и собирает его под найденный бэкенд.
-3. Скачивает модель `large-v3-turbo-q5_0` (~550 МБ) и VAD `silero-v6.2.0` (~1 МБ) в `models/`. Оборванная загрузка докачивается.
+3. Скачивает модель `large-v3` (~3 ГБ) и VAD `silero-v6.2.0` (~1 МБ) в `models/`. Оборванная загрузка докачивается.
 4. Добавляет `bin/` в `PATH` через `~/.bashrc`.
 
 Без sudo или с уже стоящими пакетами: `./setup.sh --no-packages`.
@@ -43,7 +43,7 @@ source ~/.bashrc
 | `vr meet toggle [файл]` | то же для горячей клавиши |
 | `vr-transcribe <файл>` | расшифровать любой аудиофайл |
 | `vr-transcribe --meet <файл>` | расшифровать запись встречи по каналам |
-| `vr-model <name>` | скачать другую модель (`large-v3-turbo`, `small`, `medium`, `large-v3`) |
+| `vr-model <name>` | скачать другую модель (`large-v3-turbo-q5_0`, `large-v3-turbo`, `small`, `medium`) |
 | `vr-build` | пересобрать whisper.cpp (после смены железа/драйверов) |
 
 Каждая запись сохраняется в `recordings/<дата>.ogg` (Opus 24 кбит/с, ~180 КБ в минуту) и `.txt`;
@@ -94,7 +94,7 @@ vr tz.md   # что не трогать, Enter
 - `VR_MEET_MIC`, `VR_MEET_SPEAKERS` — источники для `vr meet` (по умолчанию системные
   микрофон и выход), список: `pactl list short sources`; `VR_MEET_ME`, `VR_MEET_THEM` — метки;
   `VR_MEET_DEDUP` — убирать эхо собеседников из канала микрофона (по умолчанию `1`);
-- `VR_MODEL_NAME` — модель (`large-v3-turbo-q5_0`, `large-v3-turbo`, `small`...),
+- `VR_MODEL_NAME` — модель (`large-v3`, `large-v3-turbo-q5_0`, `large-v3-turbo`, `small`...),
   `VR_THREADS` — потоки CPU.
 
 ## Если не работает

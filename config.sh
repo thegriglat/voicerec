@@ -1,10 +1,10 @@
 # Настройки voicerec. Подключается всеми скриптами из bin/.
 VOICEREC_HOME="${VOICEREC_HOME:-$HOME/voicerec}"
 
-# Модель: large-v3-turbo-q5_0 — квантованная turbo, ~550 МБ вместо 1.6 ГБ,
-# по качеству для русского почти без потерь. Полная: large-v3-turbo.
-# Другие: small, medium, large-v3 (скачать: vr-model <name>).
-VR_MODEL_NAME="${VR_MODEL_NAME:-large-v3-turbo-q5_0}"
+# Модель: large-v3 — полная, ~3 ГБ, лучшее качество для русского.
+# Быстрее и легче: large-v3-turbo-q5_0 (~550 МБ), large-v3-turbo.
+# Другие: small, medium (скачать: vr-model <name>).
+VR_MODEL_NAME="${VR_MODEL_NAME:-large-v3}"
 VR_MODEL="${VR_MODEL:-$VOICEREC_HOME/models/ggml-$VR_MODEL_NAME.bin}"
 # VAD (Silero): вырезает тишину до распознавания. Без него whisper на паузах
 # выдумывает фразы из субтитров («Продолжение следует...»). 0 — выключить.
