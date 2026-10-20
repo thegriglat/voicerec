@@ -18,7 +18,7 @@ vad=()
 # $1 — wav, $2 — формат вывода (-otxt, -ocsv), результат в $tmp/out.{txt,csv}
 whisper() {
   "$VR_BIN/whisper-cli" -m "$VR_MODEL" "${vad[@]}" -l "$VR_LANG" -t "$VR_THREADS" \
-    --prompt "$VR_PROMPT" -nt -np "$2" -of "$tmp/out" -f "$1" >/dev/null 2>"$tmp/log" \
+    --prompt "$VR_PROMPT" -np "$2" -of "$tmp/out" -f "$1" >/dev/null 2>"$tmp/log" \
     || { cat "$tmp/log" >&2; exit 1; }
 }
 
