@@ -16,8 +16,10 @@ vad=()
 [ "$VR_VAD" = 1 ] && vad=(--vad -vm "$VR_VAD_MODEL" -vp 200)
 
 # $1 — wav, $2 — формат вывода (-otxt, -ocsv), результат в $tmp/out.{txt,csv}
+# -mc 0: не подавать модели уже распознанный текст как контекст. С контекстом на
+# длинных записях whisper зацикливается: одна фраза повторяется до конца файла.
 whisper() {
-  "$VR_BIN/whisper-cli" -m "$VR_MODEL" "${vad[@]}" -l "$VR_LANG" -t "$VR_THREADS" \
+  "$VR_BIN/whisper-cli" -m "$VR_MODEL" "${vad[@]}" -mc 0 -l "$VR_LANG" -t "$VR_THREADS" \
     --prompt "$VR_PROMPT" -np "$2" -of "$tmp/out" -f "$1" >/dev/null 2>"$tmp/log" \
     || { cat "$tmp/log" >&2; exit 1; }
 }
