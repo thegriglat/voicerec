@@ -31,11 +31,3 @@ VR_DEVICES_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/voicerec/devices"
 VR_MIC="${VR_MIC:-${VR_MIC_SAVED:-default}}"
 # Звук компьютера для vr meet: монитор выхода по умолчанию
 VR_SPEAKERS="${VR_SPEAKERS:-${VR_SPEAKERS_SAVED:-@DEFAULT_MONITOR@}}"
-
-# Запись встреч (vr meet): микрофон и звук компьютера — в разные каналы.
-# Метки реплик в расшифровке
-VR_MEET_ME="${VR_MEET_ME:-Я}"
-VR_MEET_THEM="${VR_MEET_THEM:-Собеседники}"
-# Убирать эхо: без наушников микрофон слышит собеседников, и их реплики
-# дублируются с меткой «Я». Дубль узнаётся по совпадению времени и текста. 0 — выключить.
-VR_MEET_DEDUP="${VR_MEET_DEDUP:-1}"

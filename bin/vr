@@ -3,8 +3,8 @@
 #   vr [файл]          запись до Enter/Ctrl+C, затем расшифровка
 #   vr toggle [файл]   первый вызов начинает запись, второй — останавливает и расшифровывает
 #                      (для горячей клавиши; файл задаётся при старте записи)
-#   vr meet [файл]     запись встречи: микрофон + звук компьютера (Meet, Zoom...),
-#   vr meet toggle [файл]  в расшифровке реплики с временем и меткой «Я»/«Собеседники»
+#   vr meet [файл]     запись встречи: микрофон + звук компьютера (Meet, Zoom...) одним
+#   vr meet toggle [файл]  потоком, в расшифровке фразы с временем, без деления на говорящих
 #   vr devices         выбрать микрофон и звук компьютера (запуск из терминала спрашивает
 #                      сам, toggle берёт последний выбор)
 # С файлом текст дописывается в его конец отдельным абзацем — ТЗ можно наговаривать
@@ -60,11 +60,12 @@ choose_devices() {
 # exec: вызывается только в фоне (record &), так $! — это сам ffmpeg, а не подоболочка
 record() {
   if [ "$mode" = meet ]; then
-    # стерео: левый канал — микрофон, правый — то, что играет в динамиках
+    # микрофон и звук компьютера смешиваются в один поток: распознаётся всё, что звучит
+    # на встрече. normalize=0 — не делить громкость пополам на каждый вход
     exec ffmpeg -nostdin -loglevel error -y \
       -f pulse -channels 1 -sample_rate 16000 -i "$VR_MIC" \
       -f pulse -channels 1 -sample_rate 16000 -i "$VR_SPEAKERS" \
-      -filter_complex "join=inputs=2:channel_layout=stereo" -c:a pcm_s16le "$wavfile"
+      -filter_complex "amix=inputs=2:duration=longest:normalize=0" -c:a pcm_s16le "$wavfile"
   else
     exec ffmpeg -nostdin -loglevel error -y \
       -f pulse -channels 1 -sample_rate 16000 -i "$VR_MIC" -c:a pcm_s16le "$wavfile"
@@ -76,11 +77,9 @@ finish() {
   local out="$1" stamp text
   stamp="$(date +%Y-%m-%d_%H-%M-%S)"
   # архив в Opus 24 кбит/с: для речи без слышимых потерь, в ~10 раз меньше wav
-  local opus=(-b:a 24k) meet=()
-  # встреча: каналы кодируются раздельно (mapping_family 255), иначе стерео-кодирование
-  # Opus подмешивает каналы друг в друга и реплики двоятся в расшифровке
-  [ "$mode" = meet ] && { opus=(-b:a 48k -mapping_family 255); meet=(--meet); stamp="$stamp-meet"; }
-  ffmpeg -nostdin -loglevel error -i "$wavfile" -c:a libopus "${opus[@]}" -application voip "$VR_RECORDINGS/$stamp.ogg"
+  local meet=()
+  [ "$mode" = meet ] && { meet=(--meet); stamp="$stamp-meet"; }
+  ffmpeg -nostdin -loglevel error -i "$wavfile" -c:a libopus -b:a 24k -application voip "$VR_RECORDINGS/$stamp.ogg"
   text="$("$VOICEREC_HOME/bin/vr-transcribe" "${meet[@]}" "$wavfile")"
   rm -f "$wavfile"
   printf '%s\n' "$text" > "$VR_RECORDINGS/$stamp.txt"
